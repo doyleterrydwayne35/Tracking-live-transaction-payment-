@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Validation & Tracking - Lazarus Nape</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;700&display=swap');
+
+        :root {
+            --primary-color: #004d40; /* Dark Teal */
+            --secondary-color: #388e3c; /* Green */
+            --accent-color: #ffb300; /* Amber */
+            --text-color-dark: #212121;
+            --text-color-light: #eceff1;
+            --background-light: #f5f5f5;
+            --background-dark: #37474f; /* Dark Grey Blue */
+            --border-color: #ccc;
+            --success-color: #4caf50;
+            --warning-color: #ff9800;
+            --danger-color: #f44336;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-light);
+            color: var(--text-color-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: var(--text-color-light);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 2.2rem;
+        }
+
+        main {
+            flex-grow: 1;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-section h2, .tracking-section h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-color-dark);
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
+        .form-group select,
+        .form-group textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 179, 0, 0.2);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: var(--text-color-light);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+            margin-top: 1rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+
+        button:hover {
+            background-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .summary-details {
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .summary-details p {
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .summary-details p strong {
+            color: var(--primary-color);
+        }
+
+        .tracking-status {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-color-light);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-pending {
+            background-color: var(--warning-color);
+        }
+
+        .status-validated {
+            background-color: var(--success-color);
+        }
+
+        .status-rejected {
+            background-color: var(--danger-color);
+        }
+
+        .payment-history ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 1.5rem;
+        }
+
+        .payment-history li {
+            background-color: var(--background-light);
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column; /* Changed for better mobile stacking */
+            align-items: flex-start;
+            font-size: 0.95rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            position: relative; /* For the action buttons */
+        }
+
+        .payment-history li .payment-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+
+        .payment-history li .payment-info span:first-child {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .payment-history li .payment-info span:last-child {
+            text-align: right;
+            flex-basis: 100%; /* For smaller screens, status goes fullscreen */
+            margin-top: 0.5rem;
+        }
+
+        @media (min-width: 480px) {
+            .payment-history li .payment-info span:last-child {
+                flex-basis: auto;
+                margin-top: 0;
+            }
+        }
+
+        .payment-history li.pending { background-color: #fffde7; border-left: 5px solid var(--warning-color); }
+        .payment-history li.validated { background-color: #e8f5e9; border-left: 5px solid var(--success-color); }
+        .payment-history li.rejected { background-color: #ffebee; border-left: 5px solid var(--danger-color); }
+
+        .currency {
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .total-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .message {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            text-align: center;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #e8f5e9;
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .message.error {
+            background-color: #ffebee;
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        .action-buttons {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .action-buttons button {
+            width: auto;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            margin-top: 0;
+            flex-grow: 1; /* Allow buttons to grow */
+        }
+
+        .action-buttons button.validate { background-color: var(--success-color); }
+        .action-buttons button.validate:hover { background-color: #367c39; } /* Darken on hover */
+        .action-buttons button.validate:disabled { background-color: #a5d6a7; cursor: not-allowed; }
+
+        .action-buttons button.reject { background-color: var(--danger-color); }
+        .action-buttons button.reject:hover { background-color: #d32f2f; } /* Darken on hover */
+        .action-buttons button.reject:disabled { background-color: #ef9a9a; cursor: not-allowed; }
+
+        .action-buttons button.delete { background-color: #9e9e9e; } /* Grey for delete */
+        .action-buttons button.delete:hover { background-color: #757575; }
+
+        .reset-button-container {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .reset-button {
+            background-color: var(--background-dark);
+            color: var(--text-color-light);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            display: inline-block; /* To allow centering */
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+        }
+
+        .reset-button:hover {
+            background-color: #455a64;
+            transform: translateY(-2px);
+        }
+
+        footer {
+            background-color: var(--background-dark);
+            color: var(--text-color-light);
+            text-align: center;
+            padding: 1.5rem 2rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            main {
+                flex-direction: column;
+                align-items: center;
+                padding: 1.5rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .form-section h2, .tracking-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .payment-history li .payment-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .payment-history li .payment-info span:last-child {
+                text-align: left;
+                width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column; /* Stack buttons vertically on small screens */
+            }
+
+            .action-buttons button {
+                width: 100%; /* Full width for stacked buttons */
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Payment Validation & Tracking</h1>
+        <p>Lazarus Nape - R18,000,000 Payment</p>
+    </header>
+
+    <main>
+        <div class="card form-section">
+            <h2>Record New Payment</h2>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label for="paymentAmount">Amount Paid (ZAR):</label>
+                    <input type="number" id="paymentAmount" value="18000000" min="0.01" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="paymentDate">Payment Date:</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="reference">Reference/Transaction ID:</label>
+                    <input type="text" id="reference" placeholder="e.g., TRN-123456789" required>
+                </div>
+                <div class="form-group">
+                    <label for="paymentMethod">Payment Method:</label>
+                    <select id="paymentMethod" required>
+                        <option value="">Select Method</option>
+                        <option value="EFT">EFT (Electronic Funds Transfer)</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Check">Check</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes:</label>
+                    <textarea id="notes" placeholder="Any additional details..."></textarea>
+                </div>
+                <button type="submit">Submit Payment for Validation</button>
+                <div id="formMessage" class="message"></div>
+            </form>
+        </div>
+
+        <div class="card tracking-section">
+            <h2>Tracking Summary</h2>
+            <div class="summary-details">
+                <p>Payment Recipient: <strong>Lazarus Nape</strong></p>
+                <p>Total Expected Amount: <span class="currency">R</span><strong><span id="expectedAmount">18,000,000.00</span></strong></p>
+                <p>Total Validated Amount: <span class="currency">R</span><strong><span id="totalValidated">0.00</span></strong></p>
+                <p>Remaining Balance: <span class="currency">R</span><strong><span id="remainingBalance">18,000,000.00</span></strong></p>
+            </div>
+
+            <div id="overallStatus" class="tracking-status status-pending">
+                Status: Pending Validation
+            </div>
+
+            <div class="payment-history">
+                <h3>Payment History</h3>
+                <ul id="historyList">
+                    <!-- Payment entries will be added here -->
+                </ul>
+                <p class="total-amount">Total Payments Recorded: <span class="currency">R</span><span id="historyTotal">0.00</span></p>
+            </div>
+
+            <div class="reset-button-container">
+                <button id="resetAllData" class="reset-button">Reset All Tracking Data</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Payment Tracker. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const expectedAmount = 18000000; // ZAR
+            const paymentForm = document.getElementById('paymentForm');
+            const paymentAmountInput = document.getElementById('paymentAmount');
+            const paymentDateInput = document.getElementById('paymentDate');
+            const referenceInput = document.getElementById('reference');
+            const paymentMethodInput = document.getElementById('paymentMethod');
+            const notesInput = document.getElementById('notes');
+            const formMessage = document.getElementById('formMessage');
+
+            const totalValidatedSpan = document.getElementById('totalValidated');
+            const remainingBalanceSpan = document.getElementById('remainingBalance');
+            const overallStatusDiv = document.getElementById('overallStatus');
+            const historyList = document.getElementById('historyList');
+            const historyTotalSpan = document.getElementById('historyTotal');
+            const resetButton = document.getElementById('resetAllData');
+
+            let payments = []; // Initialize as empty array, will load from localStorage
+
+            function initializeApp() {
+                payments = JSON.parse(localStorage.getItem('lazarusPayments')) || [];
+                // Set current date as default for payment date
+                paymentDateInput.valueAsDate = new Date();
+                paymentAmountInput.value = expectedAmount; // Pre-fill with the full amount
+
+                updateSummary();
+            }
+
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('en-ZA', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+            }
+
+            function updateSummary() {
+                let totalValidatedAmount = payments
+                    .filter(p => p.status === 'validated')
+                    .reduce((sum, p) => sum + p.amount, 0);
+
+                let totalRecordedAmount = payments.reduce((sum, p) => sum + p.amount, 0);
+
+                let remaining = expectedAmount - totalValidatedAmount;
+
+                totalValidatedSpan.textContent = formatCurrency(totalValidatedAmount);
+                remainingBalanceSpan.textContent = formatCurrency(remaining);
+                document.getElementById('expectedAmount').textContent = formatCurrency(expectedAmount);
+                historyTotalSpan.textContent = formatCurrency(totalRecordedAmount);
+
+
+                if (totalValidatedAmount >= expectedAmount) {
+                    overallStatusDiv.textContent = 'Status: Fully Paid & Validated';
+                    overallStatusDiv.className = 'tracking-status status-validated';
+                } else if (totalValidatedAmount > 0) {
+                    overallStatusDiv.textContent = `Status: Partially Validated (R${formatCurrency(remaining)} remaining)`;
+                    overallStatusDiv.className = 'tracking-status status-pending';
+                } else {
+                    overallStatusDiv.textContent = 'Status: Pending All Validation';
+                    overallStatusDiv.className = 'tracking-status status-pending';
+                }
+
+                renderPaymentHistory();
+            }
+
+            function renderPaymentHistory() {
+                historyList.innerHTML = '';
+                if (payments.length === 0) {
+                    historyList.innerHTML = '<li style="justify-content: center; color: #555; text-align: center;">No payments recorded yet.</li>';
+                } else {
+                    payments.forEach(payment => {
+                        const li = document.createElement('li');
+                        li.className = payment.status === 'validated' ? 'validated' : payment.status === 'rejected' ? 'rejected' : 'pending';
+                        li.dataset.id = payment.id; // Store ID for actions
+
+                        li.innerHTML = `
+                            <div class="payment-info">
+                                <span>${new Date(payment.date).toLocaleDateString()} - <span class="currency">R</span>${formatCurrency(payment.amount)}</span>
+                                <span>Ref: <strong>${payment.reference}</strong> (${payment.method})</span>
+                                <span>Status: <strong>${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}</strong></span>
+                            </div>
+                            ${payment.notes ? `<p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem; margin-bottom: 0;">Notes: ${payment.notes}</p>` : ''}
+                            <div class="action-buttons">
+                                <button class="validate" data-id="${payment.id}" ${payment.status === 'validated' ? 'disabled' : ''}>Validate</button>
+                                <button class="reject" data-id="${payment.id}" ${payment.status === 'rejected' ? 'disabled' : ''}>Reject</button>
+                                <button class="delete" data-id="${payment.id}">Delete</button>
+                            </div>
+                        `;
+                        historyList.appendChild(li);
+                    });
+                }
+            }
+
+            function showMessage(element, message, type) {
+                element.textContent = message;
+                element.className = `message ${type}`;
+                element.style.display = 'block';
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+
+            paymentForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const amount = parseFloat(paymentAmountInput.value);
+                const date = paymentDateInput.value;
+                const reference = referenceInput.value.trim();
+                const method = paymentMethodInput.value;
+                const notes = notesInput.value.trim();
+
+                if (isNaN(amount) || amount <= 0) {
+                    showMessage(formMessage, 'Please enter a valid payment amount.', 'error');
+                    return;
+                }
+                if (!date) {
+                    showMessage(formMessage, 'Please select a payment date.', 'error');
+                    return;
+                }
+                if (!reference) {
+                    showMessage(formMessage, 'Please enter a payment reference.', 'error');
+                    return;
+                }
+                if (!method) {
+                    showMessage(formMessage, 'Please select a payment method.', 'error');
+                    return;
+                }
+
+                const newPayment = {
+                    id: Date.now(),
+                    amount: amount,
+                    date: date,
+                    reference: reference,
+                    method: method,
+                    notes: notes,
+                    status: 'pending' // All new payments start as pending validation
+                };
+
+                payments.push(newPayment);
+                localStorage.setItem('lazarusPayments', JSON.stringify(payments));
+
+                showMessage(formMessage, 'Payment submitted successfully for validation! (Status: Pending)', 'success');
+                paymentForm.reset();
+                paymentDateInput.valueAsDate = new Date(); // Reset date
+                paymentAmountInput.value = expectedAmount; // Reset amount to full amount for next potential entry
+                updateSummary();
+            });
+
+            historyList.addEventListener('click', (e) => {
+                const target = e.target;
+                const paymentId = parseInt(target.dataset.id);
+
+                if (!paymentId) return;
+
+                const paymentIndex = payments.findIndex(p => p.id === paymentId);
+                if (paymentIndex === -1) return;
+
+                if (target.classList.contains('validate')) {
+                    payments[paymentIndex].status = 'validated';
+                    showMessage(formMessage, `Payment ${paymentId} validated.`, 'success');
+                } else if (target.classList.contains('reject')) {
+                    payments[paymentIndex].status = 'rejected';
+                    showMessage(formMessage, `Payment ${paymentId} rejected.`, 'error');
+                } else if (target.classList.contains('delete')) {
+                    if (confirm('Are you sure you want to delete this payment record? This action cannot be undone.')) {
+                        payments.splice(paymentIndex, 1);
+                        showMessage(formMessage, `Payment ${paymentId} deleted.`, 'error');
+                    } else {
+                        return; // Do nothing if cancelled
+                    }
+                }
+
+                localStorage.setItem('lazarusPayments', JSON.stringify(payments));
+                updateSummary();
+            });
+
+            // Reset functionality
+            resetButton.addEventListener('click', () => {
+                if (confirm('Are you absolutely sure you want to reset ALL payment tracking data for Lazarus Nape? This action cannot be undone.')) {
+                    localStorage.removeItem('lazarusPayments');
+                    payments = []; // Clear current payments array
+                    initializeApp(); // Re-initialize the app state
+                    showMessage(formMessage, 'All payment data has been reset!', 'success');
+                }
+            });
+
+            // Initial load
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
